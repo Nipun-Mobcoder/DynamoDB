@@ -1,6 +1,8 @@
 import jwt from "jsonwebtoken";
 import { IUser, ModelUser } from "@src/dto/User";
 import { IDynamoDBService } from "@src/DB/DynamoService";
+import { logger } from "@src/utils/logging";
+import { AWSError } from "aws-sdk";
 
 export interface IUserRepository {
   findUser(email: string): Promise<Record<string, any> | null>;
@@ -10,45 +12,79 @@ export interface IUserRepository {
 }
 
 export class UserRepository implements IUserRepository {
-
   private dynamoDB: IDynamoDBService;
 
   constructor(dynamoDB: IDynamoDBService) {
     this.dynamoDB = dynamoDB;
   }
 
+  createTable = async (partitionKey: string): Promise<Record<string, any> | undefined> => {
+    const params = {
+      TableName: "Users",
+      KeySchema: [{ AttributeName: partitionKey, KeyType: "HASH" }],
+      AttributeDefinitions: [{ AttributeName: partitionKey, AttributeType: "S" }],
+      ProvisionedThroughput: {
+        ReadCapacityUnits: 5,
+        WriteCapacityUnits: 5,
+      },
+    };
+
+    try {
+      const dynamoDB = this.dynamoDB.getDynamoClient();
+      const data = await dynamoDB.createTable(params).promise();
+      console.log("Table created successfully:", data);
+      return data;
+    } catch (err) {
+      console.error("Error creating table:", err);
+      throw new Error("Error creating table.");
+    }
+  };
+
   findUser = async (email: string): Promise<Record<string, any> | null> => {
     try {
       const params = {
-        TableName: 'Users',
+        TableName: "Users",
         Key: {
           email,
         },
       };
-      const docClient = this.dynamoDB.getDocClient();
-      const findUser = await docClient.get(params).promise();
-      
-      return findUser;
+      let fetchData = null;
+      try {
+        const docClient = await this.dynamoDB.getDocClient();
+        fetchData = await docClient.get(params).promise();
+      } catch (error) {
+        const awsError = error as AWSError;
+        if (awsError.code === "ResourceNotFoundException") {
+          logger.warn(`Table 'Users' not found. Creating table...`);
+          await this.createTable("email");
+          logger.info("Table created. Retrying user fetch...");
+          return {
+            message: "Table Created Successfully. As there was no table with this following name.",
+          };
+        }
+        throw new Error("User not found.");
+      }
+
+      return fetchData?.Item || null;
     } catch (error) {
       if (error instanceof Error) {
-        console.error(error);
-        throw new Error(error.message || "Something went wrong while fetching the user.");
+        logger.error(error.message);
+
+        throw new Error("User not found.");
       }
       throw new Error("An unexpected error occurred.");
     }
-  }
+  };
 
   create = async (data: IUser): Promise<Record<string, any> | null> => {
     try {
       const params = {
-        TableName: 'Users',
+        TableName: "Users",
         Item: data,
       };
-      const docClient = this.dynamoDB.getDocClient();
-      const newUser = await docClient.put(
-        params
-      );
-      return newUser;
+      const docClient = await this.dynamoDB.getDocClient();
+      await docClient.put(params).promise();
+      return data;
     } catch (error) {
       if (error instanceof Error) throw new Error(error?.message || "Looks like something went wrong.");
       throw new Error("An unexpected error occurred.");
@@ -57,7 +93,7 @@ export class UserRepository implements IUserRepository {
 
   createToken = (user: Record<string, any> | null): string => {
     try {
-      if(!user) throw new Error("Values are invalid.")
+      if (!user) throw new Error("Values are invalid.");
       const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET || "", { expiresIn: "1h" });
 
       return token;

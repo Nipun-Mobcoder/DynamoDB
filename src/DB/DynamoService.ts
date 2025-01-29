@@ -13,7 +13,7 @@ class DynamoDBService implements IDynamoDBService {
 
   constructor(
     private awsDynamoClientFactory: IAwsDynamoClientFactory,
-    private config: IAwsDynamoDBConfig
+    private config: IAwsDynamoDBConfig,
   ) {}
 
   private initializeDynamoClient(): AWS.DynamoDB {
