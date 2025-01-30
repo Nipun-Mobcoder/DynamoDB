@@ -6,10 +6,9 @@ import { AWSError } from "aws-sdk";
 import { ModelTeam } from "@src/dto/Teams";
 
 export interface ITeamsRepository {
-  fetchTables(team_id: string): Promise<Record<string, any> | null>;
+  fetchTeams(team_id: string): Promise<Record<string, any> | null>;
   createTeam(data: ModelTeam): Promise<Record<string, any> | null>;
   createTask(data: ModelTeam): Promise<Record<string, any> | null>;
-  createToken(data: Record<string, any> | null): string;
   fetchDetails(token: string): ModelUser;
 }
 
@@ -37,6 +36,30 @@ export class TeamRepository implements ITeamsRepository {
         { AttributeName: partitionKey, AttributeType: "S" },
         { AttributeName: sortKey, AttributeType: "S" },
       ],
+      GlobalSecondaryIndex: [{
+        IndexName: "BoardNameIndex",
+        KeySchema: [
+          { AttributeName: "board_name", KeyType: "HASH" },
+          { AttributeName: "task_name", KeyType: "RANGE" }
+        ],
+        Projection: {
+          ProjectionType: "ALL"
+        },
+        ProvisionedThroughput: {
+          ReadCapacityUnits: 5,
+          WriteCapacityUnits: 5
+        } 
+      }],
+      LocalSecondaryIndex: [{
+        IndexName: "TaskNameIndex",
+        KeySchema: [
+          { AttributeName: "team_id", KeyType: "HASH" },
+          { AttributeName: "task_name", KeyType: "RANGE" }
+        ],
+        Projection: {
+          ProjectionType: "ALL"
+        }
+      }],
       ProvisionedThroughput: {
         ReadCapacityUnits: 5,
         WriteCapacityUnits: 5,
@@ -54,7 +77,7 @@ export class TeamRepository implements ITeamsRepository {
     }
   };
 
-  fetchTables = async (team_id: string): Promise<Record<string, any> | null> => {
+  fetchTeams = async (team_id: string): Promise<Record<string, any> | null> => {
     try {
       const params = {
         TableName: "Teams",
@@ -115,18 +138,6 @@ export class TeamRepository implements ITeamsRepository {
       const docClient = await this.dynamoDB.getDocClient();
       await docClient.put(params).promise();
       return data;
-    } catch (error) {
-      if (error instanceof Error) throw new Error(error?.message || "Looks like something went wrong.");
-      throw new Error("An unexpected error occurred.");
-    }
-  };
-
-  createToken = (user: Record<string, any> | null): string => {
-    try {
-      if (!user) throw new Error("Values are invalid.");
-      const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET || "", { expiresIn: "1h" });
-
-      return token;
     } catch (error) {
       if (error instanceof Error) throw new Error(error?.message || "Looks like something went wrong.");
       throw new Error("An unexpected error occurred.");
