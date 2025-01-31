@@ -3,6 +3,8 @@ import { IUser, ModelUser } from "@src/dto/User";
 import { IDynamoDBService } from "@src/DB/DynamoService";
 import { logger } from "@src/utils/logging";
 import { AWSError } from "aws-sdk";
+import { ISQSService } from "@src/SQS/SQSService";
+import { SendMessageCommand } from "@aws-sdk/client-sqs";
 
 export interface IUserRepository {
   findUser(email: string): Promise<IUser|null>;
@@ -13,9 +15,11 @@ export interface IUserRepository {
 
 export class UserRepository implements IUserRepository {
   private dynamoDB: IDynamoDBService;
+  private sqs: ISQSService;
 
-  constructor(dynamoDB: IDynamoDBService) {
+  constructor(dynamoDB: IDynamoDBService, sqs: ISQSService) {
     this.dynamoDB = dynamoDB;
+    this.sqs = sqs;
   }
 
   createTable = async (partitionKey: string): Promise<Record<string, any> | undefined> => {
@@ -82,6 +86,27 @@ export class UserRepository implements IUserRepository {
       };
       const docClient = await this.dynamoDB.getDocClient();
       await docClient.put(params).promise();
+      const command = {
+        DelaySeconds: 10,
+        MessageAttributes: {
+          userName: {
+            DataType: "String",
+            StringValue: data.name || '',
+          },
+          email: {
+            DataType: "String",
+            StringValue: data.email,
+          },
+          teamName: {
+            DataType: "String",
+            StringValue: data.team_id,
+          },
+        },
+        MessageBody:
+          `Welcome to the team ${data.team_id}, user ${data.name}`,
+        QueueUrl: this.sqs.getSQSURL(),
+      }
+      await this.sqs.getSQSClient().send(new SendMessageCommand(command));
       return data;
     } catch (error) {
       if (error instanceof Error) throw new Error(error?.message || "Looks like something went wrong.");

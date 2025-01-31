@@ -1,6 +1,6 @@
 import AWS from "aws-sdk";
 import { IAwsDynamoClientFactory } from "./AwsDynamoClientFactory";
-import { IAwsDynamoDBConfig } from "@src/config/aws/DynamoDBConfig";
+import { IAwsConfig } from "@src/config/aws/AWSConfig";
 
 export interface IDynamoDBService {
   getDynamoClient(): AWS.DynamoDB;
@@ -13,7 +13,7 @@ class DynamoDBService implements IDynamoDBService {
 
   constructor(
     private awsDynamoClientFactory: IAwsDynamoClientFactory,
-    private config: IAwsDynamoDBConfig,
+    private config: IAwsConfig,
   ) {}
 
   private initializeDynamoClient(): AWS.DynamoDB {

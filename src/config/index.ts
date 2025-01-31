@@ -4,10 +4,12 @@ interface IConfig {
   application: {
     port: number;
   };
-  amazonDynamo: {
+  aws: {
     accessKeyId: string;
     secretAccessKey: string;
     region: string;
+    accountId: string; 
+    sqsName: string;
   };
 }
 
@@ -15,10 +17,12 @@ class Config implements IConfig {
   public application: {
     port: number;
   };
-  public amazonDynamo: {
+  public aws: {
     accessKeyId: string;
     secretAccessKey: string;
     region: string;
+    accountId: string; 
+    sqsName: string;
   };
 
   constructor() {
@@ -26,10 +30,12 @@ class Config implements IConfig {
       port: this.getNumber("PORT", 8080),
     };
 
-    this.amazonDynamo = {
+    this.aws = {
       accessKeyId: this.getString("AWS_ACCESS_KEY_ID"),
       secretAccessKey: this.getString("AWS_SECRET_ACCESS_KEY"),
       region: this.getString("AWS_REGION"),
+      accountId: this.getString("ACCOUNT_ID"),
+      sqsName: this.getString("SQS_NAME"),
     };
   }
 
