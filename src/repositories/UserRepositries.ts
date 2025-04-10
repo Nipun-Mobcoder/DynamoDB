@@ -7,7 +7,7 @@ import { ISQSService } from "@src/SQS/SQSService";
 import { SendMessageCommand } from "@aws-sdk/client-sqs";
 
 export interface IUserRepository {
-  findUser(email: string): Promise<IUser|null>;
+  findUser(email: string): Promise<IUser | null>;
   create(data: IUser): Promise<Record<string, any> | null>;
   createToken(data: IUser): string;
   fetchDetails(token: string): ModelUser;
@@ -67,7 +67,7 @@ export class UserRepository implements IUserRepository {
         throw new Error("User not found.");
       }
 
-      return fetchData?.Item as IUser || null;
+      return (fetchData?.Item as IUser) || null;
     } catch (error) {
       if (error instanceof Error) {
         logger.error(error.message);
@@ -91,7 +91,7 @@ export class UserRepository implements IUserRepository {
         MessageAttributes: {
           userName: {
             DataType: "String",
-            StringValue: data.name || '',
+            StringValue: data.name || "",
           },
           email: {
             DataType: "String",
@@ -102,10 +102,9 @@ export class UserRepository implements IUserRepository {
             StringValue: data.team_id,
           },
         },
-        MessageBody:
-          `Welcome to the team ${data.team_id}, user ${data.name}`,
+        MessageBody: `Welcome to the team ${data.team_id}, user ${data.name}`,
         QueueUrl: this.sqs.getSQSURL(),
-      }
+      };
       await this.sqs.getSQSClient().send(new SendMessageCommand(command));
       return data;
     } catch (error) {
@@ -117,7 +116,9 @@ export class UserRepository implements IUserRepository {
   createToken = (user: IUser): string => {
     try {
       if (!user) throw new Error("Values are invalid.");
-      const token = jwt.sign({ email: user.email, team_id: user.team_id || "" }, process.env.JWT_SECRET || "", { expiresIn: "1h" });
+      const token = jwt.sign({ email: user.email, team_id: user.team_id || "" }, process.env.JWT_SECRET || "", {
+        expiresIn: "1h",
+      });
 
       return token;
     } catch (error) {

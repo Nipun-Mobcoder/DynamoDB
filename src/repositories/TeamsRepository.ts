@@ -36,30 +36,34 @@ export class TeamRepository implements ITeamsRepository {
         { AttributeName: partitionKey, AttributeType: "S" },
         { AttributeName: sortKey, AttributeType: "S" },
       ],
-      GlobalSecondaryIndex: [{
-        IndexName: "BoardNameIndex",
-        KeySchema: [
-          { AttributeName: "board_name", KeyType: "HASH" },
-          { AttributeName: "task_name", KeyType: "RANGE" }
-        ],
-        Projection: {
-          ProjectionType: "ALL"
+      GlobalSecondaryIndex: [
+        {
+          IndexName: "BoardNameIndex",
+          KeySchema: [
+            { AttributeName: "board_name", KeyType: "HASH" },
+            { AttributeName: "task_name", KeyType: "RANGE" },
+          ],
+          Projection: {
+            ProjectionType: "ALL",
+          },
+          ProvisionedThroughput: {
+            ReadCapacityUnits: 5,
+            WriteCapacityUnits: 5,
+          },
         },
-        ProvisionedThroughput: {
-          ReadCapacityUnits: 5,
-          WriteCapacityUnits: 5
-        } 
-      }],
-      LocalSecondaryIndex: [{
-        IndexName: "TaskNameIndex",
-        KeySchema: [
-          { AttributeName: "team_id", KeyType: "HASH" },
-          { AttributeName: "task_name", KeyType: "RANGE" }
-        ],
-        Projection: {
-          ProjectionType: "ALL"
-        }
-      }],
+      ],
+      LocalSecondaryIndex: [
+        {
+          IndexName: "TaskNameIndex",
+          KeySchema: [
+            { AttributeName: "team_id", KeyType: "HASH" },
+            { AttributeName: "task_name", KeyType: "RANGE" },
+          ],
+          Projection: {
+            ProjectionType: "ALL",
+          },
+        },
+      ],
       ProvisionedThroughput: {
         ReadCapacityUnits: 5,
         WriteCapacityUnits: 5,
@@ -92,14 +96,14 @@ export class TeamRepository implements ITeamsRepository {
       } catch (error) {
         const awsError = error as AWSError;
         if (awsError.code === "ResourceNotFoundException") {
-          logger.warn(`Table 'Users' not found. Creating table...`);
+          logger.warn(`Table 'Teams' not found. Creating table...`);
           await this.createTable("team_id", "created_at");
-          logger.info("Table created. Retrying user fetch...");
+          logger.info("Table created. Retrying team fetch...");
           return {
             message: "Table Created Successfully. As there was no table with this following name.",
           };
         }
-        throw new Error("User not found.");
+        throw new Error("Team not found.");
       }
 
       return fetchData?.Items || null;
@@ -107,7 +111,7 @@ export class TeamRepository implements ITeamsRepository {
       if (error instanceof Error) {
         logger.error(error.message);
 
-        throw new Error("User not found.");
+        throw new Error("Team not found.");
       }
       throw new Error("An unexpected error occurred.");
     }

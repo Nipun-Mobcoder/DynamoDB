@@ -11,7 +11,13 @@ import SQSService from "@src/SQS/SQSService";
 
 const router = express.Router();
 const config = configuration.aws;
-const awsConfig = new AwsConfig(config.region, config.accessKeyId, config.secretAccessKey, config.accountId, config.sqsName);
+const awsConfig = new AwsConfig(
+  config.region,
+  config.accessKeyId,
+  config.secretAccessKey,
+  config.accountId,
+  config.sqsName,
+);
 const awsDynamoClientFactory = new AwsDynamoClientFactory();
 const awsSQSClientFactory = new AwsSQSClientFactory();
 const awsDynamoClientService = new DynamoDBService(awsDynamoClientFactory, awsConfig);

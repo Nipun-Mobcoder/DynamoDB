@@ -32,7 +32,7 @@ class SQSService implements ISQSService {
   }
 
   getSQSURL(): string {
-      return `https://sqs.${this.config.region}.amazonaws.com/${this.config.accountId}/${this.config.sqsName}`
+    return `https://sqs.${this.config.region}.amazonaws.com/${this.config.accountId}/${this.config.sqsName}`;
   }
 }
 

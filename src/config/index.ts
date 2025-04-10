@@ -8,7 +8,7 @@ interface IConfig {
     accessKeyId: string;
     secretAccessKey: string;
     region: string;
-    accountId: string; 
+    accountId: string;
     sqsName: string;
   };
 }
@@ -21,7 +21,7 @@ class Config implements IConfig {
     accessKeyId: string;
     secretAccessKey: string;
     region: string;
-    accountId: string; 
+    accountId: string;
     sqsName: string;
   };
 
